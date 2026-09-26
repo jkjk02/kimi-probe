@@ -6,7 +6,7 @@
   const STATUS_LABEL = { pass: "通过", warn: "可疑", fail: "失败", error: "异常", info: "信息", skip: "跳过", running: "运行中", pending: "等待" };
   const STATUS_ICON = { pass: "i-check", warn: "i-alert", fail: "i-x", error: "i-x", info: "i-info", skip: "i-minus", running: "i-loader", pending: "i-minus" };
   const STORE_KEY = "kimi-probe-config-v2";
-  const RING = 263.9;
+  const RING = 188.5;  // 2π×30 for r=30 ring in new layout
 
   // ---------------------------------------------------------------- helpers
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -55,18 +55,37 @@
     $("version").textContent = `v${meta.version}`;
     $("base_url").placeholder = meta.default_base_url;
     $("model_select").innerHTML = meta.models.map((m) => `<option value="${m}">${m}</option>`).join("");
+    // New inline pill-style probe list
     $("probe-list").innerHTML = meta.probes.map((p) => `
       <label class="probe-item" title="${esc(p.reference)}">
         <input type="checkbox" value="${p.id}" ${p.default_on ? "checked" : ""}>
-        <span><span class="pname">${esc(p.name)}</span><span class="pdesc">${esc(p.description)}</span></span>
+        <span class="pname">${esc(p.name)}</span>
+        <span class="pdesc">${esc(p.description)}</span>
         <span class="pmeta"><span class="pcat">${esc(p.category)}</span><span class="cost ${p.cost}" title="token 消耗：${p.cost}"><i></i><i></i><i></i></span></span>
       </label>`).join("");
     $("probe-count").textContent = meta.probes.length;
     loadConfig();
     $("baseline-hint").textContent = meta.baselines.length ? `已内置官方分词基准：${meta.baselines.join("、")}` : "未找到分词基准文件；测中转站时请填写参考官方 Key。";
     setConn("ok", "服务就绪");
+
+    // Config drawer toggle
+    $("btn-config").onclick = () => {
+      const drawer = $("config-drawer");
+      const open = drawer.getAttribute("aria-hidden") === "false";
+      drawer.setAttribute("aria-hidden", open ? "true" : "false");
+      $("btn-config").setAttribute("aria-expanded", open ? "false" : "true");
+    };
+    // Close drawer on run
+    const closeDrawer = () => {
+      $("config-drawer").setAttribute("aria-hidden", "true");
+      $("btn-config").setAttribute("aria-expanded", "false");
+    };
+    $("btn-run").addEventListener("click", closeDrawer, { once: false });
   }
 
+  // 第三方/中转站预设：跳过 endpoint（需要官方响应头），保留其余含 params（测中转是否静默接受官方会拒绝的参数）
+  const RELAY_PROBES = new Set(["identity","tokenizer","hidden_prompt","cache","latency","streaming","thinking","params","web_search","vision","video","tool_call","structured"]);
+  $("sel-relay").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = RELAY_PROBES.has(e.value)));
   $("sel-all").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = true));
   $("sel-none").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = false));
   $("sel-default").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = !!state.meta.probes.find((p) => p.id === e.value)?.default_on));
@@ -89,8 +108,20 @@
       needle_k_tokens: Number($("opt_needle").value) || 32,
       video_upload: $("opt_video_upload").checked,
       web_query: $("opt_web_query").value.trim() || null,
-      custom_text: $("opt_custom_text").value,
+      custom_text: $("opt_custom_text") ? $("opt_custom_text").value : "",
     };
+  }
+
+  // 规范化 Base URL：去掉末尾斜杠，若路径中没有 /vN 则自动补 /v1
+  function normalizeBaseUrl(raw) {
+    if (!raw) return raw;
+    let u = raw.trim().replace(/\/+$/, "");
+    // 仅在路径里完全没有版本段时补充 /v1（e.g. go-kimi.com → go-kimi.com/v1）
+    try {
+      const parsed = new URL(u.startsWith("http") ? u : "https://" + u);
+      if (!/\/v\d+(\/|$)/.test(parsed.pathname)) u = u + "/v1";
+    } catch { /* 非法 URL，原样传给后端报错 */ }
+    return u;
   }
 
   async function run() {
@@ -100,20 +131,25 @@
     const probes = [...document.querySelectorAll(".probe-item input:checked")].map((e) => e.value);
     if (!probes.length) { toast("请至少选择一个检测项目"); return; }
     saveConfig();
+    const effectiveBaseUrl = normalizeBaseUrl($("base_url").value.trim()) || state.meta.default_base_url;
+    // 若自动补全了路径，把规范化结果回填输入框，避免用户下次再忘
+    if ($("base_url").value.trim() && effectiveBaseUrl !== $("base_url").value.trim()) {
+      $("base_url").value = effectiveBaseUrl;
+    }
     state.results = {}; state.order = probes; state.summary = null;
     $("results").innerHTML = ""; $("log").textContent = ""; $("log-count").textContent = "";
-    $("empty").classList.add("hidden"); $("summary").classList.remove("hidden"); $("toolbar").classList.remove("hidden");
+    $("empty").classList.add("hidden"); $("summary-bar").classList.remove("hidden"); $("toolbar").classList.remove("hidden");
     $("btn-report").classList.add("hidden"); $("btn-copy").classList.add("hidden");
     $("score").textContent = "–"; $("ring-fg").style.strokeDashoffset = RING; $("ring-fg").style.stroke = "var(--info)";
     $("verdict").textContent = "运行中…"; $("verdict").className = "verdict"; $("counts").innerHTML = "";
-    $("summary-meta").textContent = `${currentModel()} @ ${$("base_url").value || state.meta.default_base_url}`;
+    $("summary-meta").textContent = `${currentModel()} @ ${effectiveBaseUrl}`;
     setProgress(0, probes.length);
     for (const id of probes) renderCard({ id, name: state.meta.probes.find((p) => p.id === id)?.name || id, category: state.meta.probes.find((p) => p.id === id)?.category || "", status: "pending" });
     renderFilters();
     $("btn-run").disabled = true; $("btn-stop").disabled = false; setConn("busy", "检测中");
     state.controller = new AbortController();
     const body = {
-      base_url: $("base_url").value.trim() || state.meta.default_base_url,
+      base_url: effectiveBaseUrl,
       api_key: apiKey, model: currentModel(), probes, options: options(),
       reference_api_key: $("ref_key").value.trim() || null,
       reference_base_url: $("ref_base").value.trim() || null,
@@ -247,7 +283,7 @@
     state.results = {}; state.order = []; state.summary = null;
     $("results").innerHTML = "";
     $("empty").classList.add("hidden");
-    $("summary").classList.remove("hidden");
+    $("summary-bar").classList.remove("hidden");
     $("toolbar").classList.remove("hidden");
     for (const r of report.results || []) { state.results[r.id] = r; state.order.push(r.id); renderCard(r); }
     $("summary-meta").textContent = `${report.model} @ ${report.base_url}`;

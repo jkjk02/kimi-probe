@@ -37,6 +37,15 @@ class RunRequest(BaseModel):
     reference_base_url: str | None = None
 
 
+def normalize_base_url(url: str) -> str:
+    """Strip trailing slashes and append /v1 if the path has no version segment."""
+    import re
+    url = (url or DEFAULT_BASE_URL).rstrip("/")
+    if not re.search(r"/v\d+(/|$)", url):
+        url += "/v1"
+    return url
+
+
 def load_baseline(model: str) -> dict:
     """Load baselines/<model>.json if present (official token counts for the built-in samples)."""
     candidates = [BASELINE_DIR / f"{model}.json", BASELINE_DIR / "default.json"]
@@ -92,10 +101,10 @@ async def run(req: RunRequest, request: Request) -> StreamingResponse:
 
     async def gen():
         queue: asyncio.Queue[str] = asyncio.Queue()
-        client = KimiClient(req.base_url, req.api_key.strip())
+        client = KimiClient(normalize_base_url(req.base_url), req.api_key.strip())
         ref_client = None
         if req.reference_api_key and req.reference_api_key.strip():
-            ref_client = KimiClient(req.reference_base_url or DEFAULT_BASE_URL, req.reference_api_key.strip())
+            ref_client = KimiClient(normalize_base_url(req.reference_base_url or DEFAULT_BASE_URL), req.reference_api_key.strip())
         baseline = load_baseline(req.model)
 
         async def log(msg: str) -> None:

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>kimi-probe · Kimi API 特征检测</title>
+  <title>kimi-probe · Kimi API 检测</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/static/style.css">
@@ -18,7 +18,7 @@
     <symbol id="i-minus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
     <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
-    <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol>
     <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
     <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
@@ -26,153 +26,251 @@
     <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
     <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6M12 19h8"/></symbol>
     <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m10.9 12.1 9.1-9.1M17 5l3 3M14 8l3 3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
   </svg>
 
+  <!-- ── Top nav bar ─────────────────────────────── -->
   <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">K</span>
-      <div>
-        <div class="brand-title">kimi-probe <span id="version" class="brand-version"></span></div>
-        <div class="brand-sub">Kimi / Moonshot API 特征与真实性检测</div>
+    <div class="topbar-left">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span class="brand-title">kimi-probe</span>
+        <span id="version" class="brand-version"></span>
       </div>
+      <div class="topbar-sep"></div>
+      <span id="conn" class="conn" role="status">
+        <span class="dot"></span>
+        <span class="conn-text">未连接</span>
+      </span>
     </div>
     <div class="topbar-right">
-      <span id="conn" class="conn" role="status"><span class="dot"></span><span class="conn-text">未连接</span></span>
-      <a class="btn ghost" href="https://platform.kimi.ai/docs" target="_blank" rel="noopener"><svg class="ic"><use href="#i-book"/></svg>官方文档</a>
-      <button id="btn-history" class="btn ghost" type="button"><svg class="ic"><use href="#i-history"/></svg>历史报告</button>
+      <a class="btn ghost small" href="https://platform.kimi.ai/docs" target="_blank" rel="noopener">
+        <svg class="ic"><use href="#i-book"/></svg>文档
+      </a>
+      <button id="btn-history" class="btn ghost small" type="button">
+        <svg class="ic"><use href="#i-history"/></svg>历史报告
+      </button>
+      <button id="btn-config" class="btn ghost small" type="button" aria-expanded="false" aria-controls="config-drawer">
+        <svg class="ic"><use href="#i-settings"/></svg>配置
+        <svg class="ic chev-sm" id="config-chev"><use href="#i-chevron"/></svg>
+      </button>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="panel config" aria-label="连接配置与检测项目">
-      <section class="sec">
-        <h2 class="sec-title">连接</h2>
-        <div class="field">
+  <!-- ── Config drawer (slides down from topbar) ── -->
+  <div id="config-drawer" class="config-drawer" aria-hidden="true">
+    <div class="config-inner">
+
+      <!-- Connection row -->
+      <div class="config-row">
+        <div class="config-group" style="flex:2;min-width:220px">
           <label for="base_url">Base URL</label>
           <input id="base_url" type="text" placeholder="https://api.moonshot.ai/v1" autocomplete="off" spellcheck="false">
-          <p class="help">官方为 <code>api.moonshot.ai/v1</code>；测中转站填其地址。</p>
         </div>
-        <div class="field">
+        <div class="config-group" style="flex:2;min-width:200px">
           <label for="api_key">API Key</label>
           <div class="input-wrap">
             <input id="api_key" type="password" placeholder="sk-…" autocomplete="off">
-            <button type="button" class="eye" id="toggle-key" aria-label="显示或隐藏 Key" aria-pressed="false"><svg class="ic"><use href="#i-key"/></svg></button>
+            <button type="button" class="eye" id="toggle-key" aria-label="显示或隐藏 Key" aria-pressed="false">
+              <svg class="ic"><use href="#i-key"/></svg>
+            </button>
           </div>
         </div>
-        <div class="field">
+        <div class="config-group" style="flex:1.5;min-width:160px">
           <label for="model_select">模型</label>
           <div class="row2">
             <select id="model_select" aria-label="预设模型"></select>
-            <input id="model_custom" type="text" placeholder="或自定义" autocomplete="off" spellcheck="false" aria-label="自定义模型名">
+            <input id="model_custom" type="text" placeholder="自定义" autocomplete="off" spellcheck="false" aria-label="自定义模型名">
           </div>
         </div>
-
-        <details class="disclosure">
-          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>参考官方 Key <span class="pill-mini">可选</span></summary>
-          <p class="help">只用于调用官方分词接口作对照，不消耗推理额度。测中转站时建议填写。</p>
-          <div class="field"><label for="ref_key">参考 API Key</label><input id="ref_key" type="password" placeholder="sk-…" autocomplete="off"></div>
-          <div class="field"><label for="ref_base">参考 Base URL</label><input id="ref_base" type="text" placeholder="https://api.moonshot.ai/v1" autocomplete="off" spellcheck="false"></div>
-        </details>
-
-        <details class="disclosure">
-          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>高级选项</summary>
-          <div class="grid2">
-            <div class="field"><label for="opt_effort">K3 reasoning_effort</label>
-              <select id="opt_effort"><option value="low" selected>low</option><option value="high">high</option><option value="max">max（官方默认）</option></select></div>
-            <div class="field"><label for="opt_k26">K2.6 thinking</label>
-              <select id="opt_k26"><option value="enabled" selected>enabled</option><option value="disabled">disabled</option></select></div>
-            <div class="field"><label for="opt_latency_runs">延迟轮数</label><input id="opt_latency_runs" type="number" min="1" max="8" value="3"></div>
-            <div class="field"><label for="opt_cache_rounds">缓存轮数</label><input id="opt_cache_rounds" type="number" min="2" max="6" value="3"></div>
-            <div class="field"><label for="opt_needle">长上下文 K tokens</label><input id="opt_needle" type="number" min="8" max="200" value="32"></div>
-          </div>
-          <label class="check"><input id="opt_video_upload" type="checkbox"><span>视频探针同时测试 /files 上传 + ms:// 引用</span></label>
-          <div class="field"><label for="opt_web_query">联网搜索自定义问题</label><input id="opt_web_query" type="text" placeholder="留空用默认时效性问题" autocomplete="off"></div>
-          <div class="field"><label for="opt_custom_text">分词自定义样本</label><textarea id="opt_custom_text" rows="3" placeholder="留空使用内置 3 组样本"></textarea></div>
-        </details>
-      </section>
-
-      <section class="sec">
-        <div class="sec-head">
-          <h2 class="sec-title">检测项目 <span id="probe-count" class="count"></span></h2>
-          <div class="seg" role="group" aria-label="快速选择">
-            <button type="button" class="seg-btn" id="sel-default">默认</button>
-            <button type="button" class="seg-btn" id="sel-all">全选</button>
-            <button type="button" class="seg-btn" id="sel-none">清空</button>
-          </div>
-        </div>
-        <div id="probe-list" class="probe-list"></div>
-        <p id="baseline-hint" class="help"></p>
-      </section>
-
-      <div class="actions">
-        <button id="btn-run" class="btn primary" type="button"><svg class="ic"><use href="#i-play"/></svg><span>开始检测</span></button>
-        <button id="btn-stop" class="btn danger" type="button" disabled><svg class="ic"><use href="#i-stop"/></svg><span>停止</span></button>
       </div>
-      <p class="help">Key 仅在本机进程内使用；报告 JSON 保存在 reports/（不含 Key）。</p>
-    </aside>
 
-    <section class="results" aria-live="polite">
-      <div id="summary" class="summary hidden">
+      <!-- Probe selector row -->
+      <div class="config-row config-row-probes">
+        <div class="config-group" style="flex:1">
+          <div class="probe-header">
+            <label>检测项目 <span id="probe-count" class="count"></span></label>
+            <div class="seg" role="group" aria-label="快速选择">
+              <button type="button" class="seg-btn" id="sel-relay">第三方</button>
+              <button type="button" class="seg-btn" id="sel-default">默认</button>
+              <button type="button" class="seg-btn" id="sel-all">全选</button>
+              <button type="button" class="seg-btn" id="sel-none">清空</button>
+            </div>
+          </div>
+          <div id="probe-list" class="probe-list-inline"></div>
+          <p id="baseline-hint" class="help"></p>
+        </div>
+      </div>
+
+      <!-- Optional / Advanced (collapsed) -->
+      <div class="config-row config-row-advanced">
+        <details class="disclosure-inline">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>参考官方 Key <span class="pill-mini">可选</span></summary>
+          <div class="disclosure-body">
+            <div class="config-group" style="min-width:200px">
+              <label for="ref_key">参考 API Key</label>
+              <input id="ref_key" type="password" placeholder="sk-…" autocomplete="off">
+            </div>
+            <div class="config-group" style="min-width:200px">
+              <label for="ref_base">参考 Base URL</label>
+              <input id="ref_base" type="text" placeholder="https://api.moonshot.ai/v1" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+        </details>
+        <details class="disclosure-inline">
+          <summary><svg class="ic chev"><use href="#i-chevron"/></svg>高级选项</summary>
+          <div class="disclosure-body">
+            <div class="config-group">
+              <label for="opt_effort">K3 reasoning_effort</label>
+              <select id="opt_effort"><option value="low" selected>low</option><option value="high">high</option><option value="max">max</option></select>
+            </div>
+            <div class="config-group">
+              <label for="opt_k26">K2.6 thinking</label>
+              <select id="opt_k26"><option value="enabled" selected>enabled</option><option value="disabled">disabled</option></select>
+            </div>
+            <div class="config-group">
+              <label for="opt_latency_runs">延迟轮数</label>
+              <input id="opt_latency_runs" type="number" min="1" max="8" value="3">
+            </div>
+            <div class="config-group">
+              <label for="opt_cache_rounds">缓存轮数</label>
+              <input id="opt_cache_rounds" type="number" min="2" max="6" value="3">
+            </div>
+            <div class="config-group">
+              <label for="opt_needle">长上下文 K tokens</label>
+              <input id="opt_needle" type="number" min="8" max="200" value="32">
+            </div>
+            <div class="config-group">
+              <label for="opt_web_query">联网搜索问题</label>
+              <input id="opt_web_query" type="text" placeholder="留空用默认" autocomplete="off">
+            </div>
+            <label class="check"><input id="opt_video_upload" type="checkbox"><span>视频探针测试 /files 上传</span></label>
+          </div>
+        </details>
+      </div>
+
+      <!-- Run actions -->
+      <div class="config-actions">
+        <p class="help config-hint">Key 仅在本机进程内使用，报告保存在 reports/（不含 Key）</p>
+        <button id="btn-stop" class="btn danger" type="button" disabled>
+          <svg class="ic"><use href="#i-stop"/></svg>停止
+        </button>
+        <button id="btn-run" class="btn primary" type="button">
+          <svg class="ic"><use href="#i-zap"/></svg>开始检测
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Main content area ───────────────────────── -->
+  <main class="content">
+
+    <!-- Summary bar (hidden until run) -->
+    <div id="summary" class="summary-bar hidden">
+      <div class="summary-score">
         <div class="score-wrap">
-          <svg class="ring" viewBox="0 0 96 96" aria-hidden="true">
-            <circle class="ring-bg" cx="48" cy="48" r="42"/>
-            <circle class="ring-fg" id="ring-fg" cx="48" cy="48" r="42"/>
+          <svg class="ring" viewBox="0 0 72 72" aria-hidden="true">
+            <circle class="ring-bg" cx="36" cy="36" r="30"/>
+            <circle class="ring-fg" id="ring-fg" cx="36" cy="36" r="30"/>
           </svg>
           <div class="score"><span id="score">–</span><small>/100</small></div>
         </div>
-        <div class="summary-body">
+        <div class="summary-meta-wrap">
           <div id="verdict" class="verdict">等待运行</div>
           <div id="summary-meta" class="meta"></div>
-          <div class="progress" aria-hidden="true"><div id="progress-bar" class="progress-bar"></div></div>
-          <div id="progress-text" class="meta"></div>
-        </div>
-        <div class="summary-side">
-          <div class="summary-counts" id="counts"></div>
-          <div class="summary-actions">
-            <a id="btn-report" class="btn ghost small hidden" href="#" target="_blank"><svg class="ic"><use href="#i-download"/></svg>报告 JSON</a>
-            <button id="btn-copy" class="btn ghost small hidden" type="button"><svg class="ic"><use href="#i-copy"/></svg>复制摘要</button>
-          </div>
         </div>
       </div>
-
-      <div id="toolbar" class="toolbar hidden">
-        <div id="cat-filter" class="chips" role="group" aria-label="按分类筛选"></div>
-        <label class="check compact"><input id="only-issues" type="checkbox"><span>只看问题</span></label>
-        <div class="spacer"></div>
-        <button type="button" class="btn ghost small" id="collapse-all">全部折叠</button>
-        <button type="button" class="btn ghost small" id="expand-all">全部展开</button>
+      <div class="summary-progress">
+        <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+        <div id="progress-text" class="meta"></div>
       </div>
-
-      <div id="empty" class="empty">
-        <h3>如何判断一个 Kimi 接口是否“真”</h3>
-        <ol class="howto">
-          <li><b>分词计数一致性</b><span>usage.prompt_tokens 必须等于官方 tokenizer 计数，偏差 &gt; 2% 即可疑。</span></li>
-          <li><b>隐藏提示词</b><span>官方计数与 usage 的差值应恒为 0～2，且不随输入长度变化。</span></li>
-          <li><b>固定参数约束</b><span>官方对 temperature=0.2 / top_p / n=2 一律返回 400；中转清洗参数后就不会报错。</span></li>
-          <li><b>思考模式</b><span>K3 恒返回 reasoning_content 且拒绝 thinking 参数；K2.6 可关闭思考。</span></li>
-          <li><b>缓存命中</b><span>同前缀连续请求 cached_tokens 应接近 prompt_tokens，前缀变更后应归零。</span></li>
-          <li><b>联网 / 多模态 / 视频</b><span>用运行时生成的随机内容验证，模型无法靠记忆作弊。</span></li>
-        </ol>
-        <p class="help">填写左侧配置后点击「开始检测」。默认探针集一次约 3 万～8 万 tokens。</p>
+      <div class="summary-counts-wrap">
+        <div class="summary-counts" id="counts"></div>
+        <div class="summary-actions">
+          <a id="btn-report" class="btn ghost small hidden" href="#" target="_blank">
+            <svg class="ic"><use href="#i-download"/></svg>JSON
+          </a>
+          <button id="btn-copy" class="btn ghost small hidden" type="button">
+            <svg class="ic"><use href="#i-copy"/></svg>复制摘要
+          </button>
+        </div>
       </div>
+    </div>
 
-      <div id="results" class="cards"></div>
+    <!-- Toolbar (hidden until run) -->
+    <div id="toolbar" class="toolbar hidden">
+      <div id="cat-filter" class="chips" role="group" aria-label="按分类筛选"></div>
+      <label class="check compact"><input id="only-issues" type="checkbox"><span>只看问题</span></label>
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost small" id="collapse-all">折叠</button>
+      <button type="button" class="btn ghost small" id="expand-all">展开</button>
+    </div>
 
-      <details class="log-wrap" id="log-wrap">
-        <summary><svg class="ic"><use href="#i-terminal"/></svg>运行日志 <span id="log-count" class="count"></span></summary>
-        <pre id="log" class="log" tabindex="0"></pre>
-      </details>
-    </section>
+    <!-- Empty state -->
+    <div id="empty" class="empty">
+      <div class="empty-hero">
+        <div class="empty-icon" aria-hidden="true">K</div>
+        <h2>Kimi API 特征与真实性检测</h2>
+        <p>点击右上角「配置」填入 Base URL 和 API Key，选择探针后点击「开始检测」。</p>
+      </div>
+      <div class="howto-grid">
+        <div class="howto-card">
+          <div class="howto-num">1</div>
+          <b>分词计数</b>
+          <span>usage.prompt_tokens 必须与官方 tokenizer 一致，偏差 &gt; 2% 即可疑。</span>
+        </div>
+        <div class="howto-card">
+          <div class="howto-num">2</div>
+          <b>隐藏提示词</b>
+          <span>官方计数与 usage 差值应恒为 0～2，不随输入长度增长。</span>
+        </div>
+        <div class="howto-card">
+          <div class="howto-num">3</div>
+          <b>固定参数约束</b>
+          <span>官方对 temperature=0.2 / n=2 一律返回 400；中转站清洗参数后不会报错。</span>
+        </div>
+        <div class="howto-card">
+          <div class="howto-num">4</div>
+          <b>思考模式</b>
+          <span>K3 恒返回 reasoning_content 且拒绝 thinking 参数；K2.6 可关闭。</span>
+        </div>
+        <div class="howto-card">
+          <div class="howto-num">5</div>
+          <b>缓存命中</b>
+          <span>同前缀连续请求 cached_tokens 应接近 prompt_tokens，前缀变更后归零。</span>
+        </div>
+        <div class="howto-card">
+          <div class="howto-num">6</div>
+          <b>多模态 / 视频</b>
+          <span>随机生成验证码和动画 GIF，模型无法靠记忆作弊。</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results grid -->
+    <div id="results" class="cards"></div>
+
+    <!-- Log -->
+    <details class="log-wrap" id="log-wrap">
+      <summary><svg class="ic"><use href="#i-terminal"/></svg>运行日志 <span id="log-count" class="count"></span></summary>
+      <pre id="log" class="log" tabindex="0"></pre>
+    </details>
   </main>
 
+  <!-- History dialog -->
   <dialog id="history-dialog" aria-labelledby="history-title">
-    <div class="dialog-head"><h3 id="history-title">历史报告</h3><button class="btn ghost small" id="history-close" type="button">关闭</button></div>
+    <div class="dialog-head">
+      <h3 id="history-title">历史报告</h3>
+      <button class="btn ghost small" id="history-close" type="button">关闭</button>
+    </div>
     <div id="history-list" class="hist"></div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="assertive"></div>
-
   <script src="/static/app.js"></script>
 </body>
 </html>
