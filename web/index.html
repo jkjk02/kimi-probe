@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>kimi-probe · Kimi API 特征检测</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">K</span>
+      <div>
+        <div class="brand-title">kimi-probe</div>
+        <div class="brand-sub">Kimi / Moonshot API 特征与真实性检测套件 <span id="version"></span></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="https://platform.kimi.ai/docs" target="_blank" rel="noopener">官方文档</a>
+      <button id="btn-history" class="ghost">历史报告</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel config">
+      <h2>连接配置</h2>
+      <label>Base URL
+        <input id="base_url" type="text" placeholder="https://api.moonshot.ai/v1" autocomplete="off" spellcheck="false">
+      </label>
+      <label>API Key
+        <input id="api_key" type="password" placeholder="sk-..." autocomplete="off">
+      </label>
+      <label>模型
+        <div class="row">
+          <select id="model_select"></select>
+          <input id="model_custom" type="text" placeholder="自定义模型名" autocomplete="off" spellcheck="false">
+        </div>
+      </label>
+      <details>
+        <summary>参考官方 Key（可选）</summary>
+        <p class="hint">仅用于调用官方分词接口作为对照基准；测试中转站时强烈建议填写。不填则回退到内置基准文件。</p>
+        <label>参考 API Key
+          <input id="ref_key" type="password" placeholder="sk-..." autocomplete="off">
+        </label>
+        <label>参考 Base URL
+          <input id="ref_base" type="text" placeholder="https://api.moonshot.ai/v1" autocomplete="off" spellcheck="false">
+        </label>
+      </details>
+      <details>
+        <summary>高级选项</summary>
+        <label>K3 reasoning_effort
+          <select id="opt_effort">
+            <option value="low" selected>low（省 token）</option>
+            <option value="high">high</option>
+            <option value="max">max（官方默认）</option>
+          </select>
+        </label>
+        <label>K2.6 thinking
+          <select id="opt_k26">
+            <option value="enabled" selected>enabled（默认）</option>
+            <option value="disabled">disabled</option>
+          </select>
+        </label>
+        <label>延迟测试轮数
+          <input id="opt_latency_runs" type="number" min="1" max="8" value="3">
+        </label>
+        <label>缓存测试轮数
+          <input id="opt_cache_rounds" type="number" min="2" max="6" value="3">
+        </label>
+        <label>长上下文目标（K tokens）
+          <input id="opt_needle" type="number" min="8" max="200" value="32">
+        </label>
+        <label class="check"><input id="opt_video_upload" type="checkbox"> 视频探针同时测试 /files 上传 + ms:// 引用</label>
+        <label>联网搜索自定义问题
+          <input id="opt_web_query" type="text" placeholder="留空使用默认时效性问题" autocomplete="off">
+        </label>
+        <label>分词自定义样本（留空用内置 3 组）
+          <textarea id="opt_custom_text" rows="3" placeholder="粘贴任意文本..."></textarea>
+        </label>
+      </details>
+
+      <h2>检测项目 <span class="muted" id="probe-count"></span></h2>
+      <div class="probe-actions">
+        <button class="ghost small" id="sel-all">全选</button>
+        <button class="ghost small" id="sel-default">默认</button>
+        <button class="ghost small" id="sel-none">清空</button>
+      </div>
+      <div id="probe-list" class="probe-list"></div>
+
+      <button id="btn-run" class="primary">开始检测</button>
+      <button id="btn-stop" class="danger" disabled>停止</button>
+      <p class="hint">Key 只在本机进程内使用，不会写入磁盘；报告 JSON 保存在 reports/ 目录（不含 Key）。</p>
+    </aside>
+
+    <section class="panel results">
+      <div id="summary" class="summary hidden">
+        <div class="summary-main">
+          <div class="score"><span id="score">–</span><small>/100</small></div>
+          <div>
+            <div id="verdict" class="verdict">等待运行</div>
+            <div id="summary-meta" class="muted"></div>
+          </div>
+        </div>
+        <div class="summary-counts" id="counts"></div>
+      </div>
+
+      <div id="empty" class="empty">
+        <h3>如何判断一个 Kimi 接口是否“真”</h3>
+        <ol>
+          <li><b>分词计数一致性</b>：usage.prompt_tokens 必须等于官方 tokenizer 的计数，偏差 &gt; 2% 即可疑。</li>
+          <li><b>隐藏提示词</b>：官方计数与 usage 的差值应恒为 0~2，且不随输入长度变化。</li>
+          <li><b>固定参数约束</b>：官方平台对 temperature=0.2 / top_p / n=2 一律返回 400，中转清洗参数后就不会报错。</li>
+          <li><b>思考模式</b>：K3 恒返回 reasoning_content 且拒绝 thinking 参数；K2.6 可关闭思考。</li>
+          <li><b>缓存命中</b>：同前缀连续请求 cached_tokens 应接近 prompt_tokens，前缀变更后应归零。</li>
+          <li><b>联网 / 多模态 / 视频</b>：用运行时生成的随机内容验证，模型无法靠记忆作弊。</li>
+        </ol>
+        <p class="muted">填写左侧配置后点击「开始检测」。每次完整运行约消耗 3 万～8 万 tokens（视模型与推理强度而定）。</p>
+      </div>
+
+      <div id="results"></div>
+
+      <details class="log-wrap" id="log-wrap">
+        <summary>运行日志 <span id="log-count" class="muted"></span></summary>
+        <pre id="log"></pre>
+      </details>
+    </section>
+  </main>
+
+  <dialog id="history-dialog">
+    <div class="dialog-head"><h3>历史报告</h3><button class="ghost small" id="history-close">关闭</button></div>
+    <div id="history-list"></div>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
