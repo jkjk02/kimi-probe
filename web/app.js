@@ -84,7 +84,7 @@
   }
 
   // 第三方/中转站预设：跳过 endpoint（需要官方响应头），保留其余含 params（测中转是否静默接受官方会拒绝的参数）
-  const RELAY_PROBES = new Set(["identity","tokenizer","hidden_prompt","cache","latency","streaming","thinking","params","web_search","vision","video","tool_call","structured"]);
+  const RELAY_PROBES = new Set(["identity","tokenizer","hidden_prompt","cache","latency","streaming","thinking","params","vision","video","tool_call","structured"]);
   $("sel-relay").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = RELAY_PROBES.has(e.value)));
   $("sel-all").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = true));
   $("sel-none").onclick = () => document.querySelectorAll(".probe-item input").forEach((e) => (e.checked = false));
@@ -138,7 +138,7 @@
     }
     state.results = {}; state.order = probes; state.summary = null;
     $("results").innerHTML = ""; $("log").textContent = ""; $("log-count").textContent = "";
-    $("empty").classList.add("hidden"); $("summary-bar").classList.remove("hidden"); $("toolbar").classList.remove("hidden");
+    $("empty").classList.add("hidden"); $("summary").classList.remove("hidden"); $("toolbar").classList.remove("hidden");
     $("btn-report").classList.add("hidden"); $("btn-copy").classList.add("hidden");
     $("score").textContent = "–"; $("ring-fg").style.strokeDashoffset = RING; $("ring-fg").style.stroke = "var(--info)";
     $("verdict").textContent = "运行中…"; $("verdict").className = "verdict"; $("counts").innerHTML = "";
@@ -283,7 +283,7 @@
     state.results = {}; state.order = []; state.summary = null;
     $("results").innerHTML = "";
     $("empty").classList.add("hidden");
-    $("summary-bar").classList.remove("hidden");
+    $("summary").classList.remove("hidden");
     $("toolbar").classList.remove("hidden");
     for (const r of report.results || []) { state.results[r.id] = r; state.order.push(r.id); renderCard(r); }
     $("summary-meta").textContent = `${report.model} @ ${report.base_url}`;

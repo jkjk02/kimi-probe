@@ -150,6 +150,9 @@ async def probe_identity(ctx: ProbeContext) -> ProbeResult:
     elif claims_kimi and id_ok and rid.startswith("cmpl-"):
         r.status = "pass"
         r.summary = "模型自述为 Kimi，响应元数据符合官方格式。"
+    elif claims_kimi and rid.startswith("chatcmpl-"):
+        r.status = "warn"
+        r.summary = "模型自述为 Kimi，但响应 id 为 chatcmpl- 格式（官方为 cmpl-），响应经过中转网关重写。"
     else:
         r.status = "warn"
         r.summary = "身份自述或响应格式存在轻微偏差，请结合其他探针判断。"

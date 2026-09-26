@@ -105,15 +105,34 @@ async def probe_video(ctx: ProbeContext) -> ProbeResult:
         ]}]
         await ctx.log(f"视频探针：{label}")
         res = await ctx.client.chat(base_payload(ctx, messages, max_tokens=4096))
+        # Gateway timeouts (502/503/504) and network errors are often transient: retry once.
+        if not res.ok and (res.status == 0 or res.status >= 500):
+            await ctx.log(f"视频探针：HTTP {res.status}，重试一次")
+            res = await ctx.client.chat(base_payload(ctx, messages, max_tokens=4096))
         if not res.ok:
             r.rows.append([label, f"HTTP {res.status}", short(res.error_message, 120)])
-            return False, {"status": res.status, "error": res.error}
+            return False, {"status": res.status, "error": res.error, "http_error": True}
         answer = message_of(res.json).get("content") or ""
         usage = (res.json or {}).get("usage") or {}
+        # Thinking can consume the whole budget and leave no visible answer; retry with more room.
+        if not answer.strip() and (usage.get("completion_tokens") or 0) >= 4000:
+            await ctx.log(f"视频探针：思考耗尽 token 预算，扩大到 16K 重试")
+            res2 = await ctx.client.chat(base_payload(ctx, messages, max_tokens=16384))
+            if res2.ok:
+                answer = message_of(res2.json).get("content") or ""
+                usage = (res2.json or {}).get("usage") or {}
+        if not answer.strip():
+            r.rows.append([label, "（无可见回答）", f"思考耗尽 token 预算；completion_tokens={usage.get('completion_tokens', '-')}，prompt_tokens={usage.get('prompt_tokens', '-')}"])
+            return False, {"answer": "", "usage": usage, "overlap": 0, "empty": True}
         got = "".join(ch for ch in answer if ch.isdigit())
         exact = expected in got
-        overlap = len(set(got) & set(expected))
-        r.rows.append([label, short(answer, 80), ("完全正确" if exact else f"命中 {overlap}/{len(set(expected))} 个数字") + f"；prompt_tokens={usage.get('prompt_tokens', '-')}"])
+        # Count frames read correctly in order (best alignment), not a digit-set overlap:
+        # a random 4-digit guess shares digits with the answer far too often.
+        overlap = 0
+        for i in range(max(1, len(got) - len(expected) + 1)):
+            seg = got[i:i + len(expected)]
+            overlap = max(overlap, sum(1 for a, b in zip(seg, expected) if a == b))
+        r.rows.append([label, short(answer, 80), ("完全正确" if exact else f"按顺序读对 {overlap}/{len(expected)} 帧") + f"；prompt_tokens={usage.get('prompt_tokens', '-')}"])
         return exact, {"answer": answer, "usage": usage, "overlap": overlap}
 
     r.rows.append(["期望序列", expected, f"GIF {len(gif) // 1024} KB, 4 帧 × 0.7 s"])
@@ -136,7 +155,17 @@ async def probe_video(ctx: ProbeContext) -> ProbeResult:
 
     if ok_gif or ok_file:
         r.status, r.summary = "pass", "模型按顺序读出了动画各帧内容，视频理解可用。"
-    elif ev_gif.get("overlap", 0) >= 2 or (r.evidence.get("file", {}).get("overlap", 0) >= 2):
+    elif ev_gif.get("http_error") and not r.evidence.get("file"):
+        st = ev_gif.get("status")
+        r.status = "fail"
+        r.summary = f"动图请求未成功（HTTP {st}），重试后仍失败：网关超时或不支持视频输入，模型没有收到内容。"
+        if st in (502, 503, 504):
+            r.notes.append("5xx 来自网关而非模型，说明中转对视频/动图请求处理超时或未接入视频通道。")
+    elif ev_gif.get("empty"):
+        r.status = "fail"
+        r.summary = "模型对动图思考到 token 上限仍未给出答案，大概率没有看到逐帧内容（视频通道未接入或被降级为静态图）。"
+        r.notes.append("动图按视频解码时 prompt_tokens 应明显高于单张图片；数值偏低说明只送入了单帧或没有送入。")
+    elif ev_gif.get("overlap", 0) >= 3 or (r.evidence.get("file", {}).get("overlap", 0) >= 3):
         r.status, r.summary = "warn", "模型识别出部分帧，但顺序或完整性不足。"
     else:
         r.status, r.summary = "fail", "模型未能读取动画内容，视频通道不可用或被网关降级为静态图。"

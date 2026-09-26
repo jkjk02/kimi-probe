@@ -6,6 +6,7 @@ fingerprint the gateway in front of the model.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from dataclasses import dataclass, field
@@ -214,6 +215,15 @@ class KimiClient:
         hdrs = self._headers(headers)
         if files is not None:
             hdrs.pop("Content-Type", None)
+        result = await self._send(method, url, json_body, hdrs, files, data)
+        # Relays often return transient 5xx / network errors; retry once so a single
+        # gateway hiccup is not reported as a missing capability.
+        if files is None and (result.status == 0 or result.status >= 500):
+            await asyncio.sleep(1.5)
+            result = await self._send(method, url, json_body, hdrs, files, data)
+        return result
+
+    async def _send(self, method: str, url: str, json_body: Any, hdrs: dict, files: Any, data: Any) -> HttpResult:
         t0 = time.perf_counter()
         try:
             resp = await self._client.request(
@@ -278,6 +288,13 @@ class KimiClient:
 
     # --------------------------------------------------------------- streaming
     async def chat_stream(self, payload: dict, *, include_usage: bool = True) -> StreamResult:
+        result = await self._chat_stream_once(payload, include_usage=include_usage)
+        if result.error and (result.status == 0 or result.status >= 500) and not result.chunks:
+            await asyncio.sleep(1.5)
+            result = await self._chat_stream_once(payload, include_usage=include_usage)
+        return result
+
+    async def _chat_stream_once(self, payload: dict, *, include_usage: bool = True) -> StreamResult:
         payload = dict(payload)
         payload["stream"] = True
         if include_usage:

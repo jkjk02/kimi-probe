@@ -174,7 +174,7 @@ code { font-family: var(--mono); font-size: .88em; color: var(--text-2); backgro
 /* Config rows */
 .config-row { display: flex; align-items: flex-start; gap: var(--sp-3); flex-wrap: wrap; }
 .config-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
-.config-group label { font-size: 11.5px; font-weight: 600; color: var(--text-2); letter-spacing: .02em; text-transform: uppercase; }
+.config-group > label, .config-group > .input-wrap + label { font-size: 11.5px; font-weight: 600; color: var(--text-2); letter-spacing: .02em; text-transform: uppercase; }
 
 /* Probe selector inline */
 .probe-header { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: var(--sp-2); }

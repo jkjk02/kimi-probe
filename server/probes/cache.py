@@ -31,13 +31,22 @@ async def probe_cache(ctx: ProbeContext) -> ProbeResult:
     first_prompt_tokens: int | None = None
     all_correct = True
 
+    use_key = True
     for i in range(rounds):
         q = CACHE_QUESTIONS[i % len(CACHE_QUESTIONS)]
         expected = CACHE_EXPECTED[i % len(CACHE_EXPECTED)]
         messages = history + [{"role": "user", "content": q}]
-        payload = base_payload(ctx, messages, max_tokens=4096, prompt_cache_key=session)
         await ctx.log(f"缓存探针第 {i + 1}/{rounds} 轮")
-        st = await ctx.client.chat_stream(payload)
+        extra = {"prompt_cache_key": session} if use_key else {}
+        st = await ctx.client.chat_stream(base_payload(ctx, messages, max_tokens=4096, **extra))
+        # A gateway that does not know prompt_cache_key rejects the whole request.
+        # Drop the field and retry so automatic prefix caching can still be measured.
+        if st.error and use_key and "prompt_cache_key" in str(st.error.get("message", "")):
+            use_key = False
+            r.notes.append("网关拒绝 prompt_cache_key 字段（官方支持该参数），已去掉该字段重试后续请求。")
+            r.evidence["prompt_cache_key_rejected"] = st.error
+            await ctx.log("缓存探针：网关不支持 prompt_cache_key，去掉该字段重试")
+            st = await ctx.client.chat_stream(base_payload(ctx, messages, max_tokens=4096))
         if st.error:
             r.rows.append([i + 1, "-", "-", "-", "-", short(st.error.get("message", ""), 80), "-"])
             r.status = "fail"
@@ -79,7 +88,8 @@ async def probe_cache(ctx: ProbeContext) -> ProbeResult:
     # Extra: change the prefix and confirm cache drops (prefix-cache semantics).
     await ctx.log("缓存探针：改变前缀验证失效")
     altered = [{"role": "system", "content": "【已修订版本】" + CACHE_PREFIX}, {"role": "user", "content": CACHE_QUESTIONS[0]}]
-    alt = await ctx.client.chat(base_payload(ctx, altered, max_tokens=64, prompt_cache_key=session))
+    alt_extra = {"prompt_cache_key": session} if use_key else {}
+    alt = await ctx.client.chat(base_payload(ctx, altered, max_tokens=64, **alt_extra))
     alt_usage = (alt.json or {}).get("usage") if alt.ok and isinstance(alt.json, dict) else None
     alt_cached = usage_cached(alt_usage)
     alt_pt = alt_usage.get("prompt_tokens") if alt_usage else None

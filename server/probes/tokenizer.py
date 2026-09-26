@@ -230,8 +230,11 @@ async def probe_hidden_prompt(ctx: ProbeContext) -> ProbeResult:
         r.status, r.summary = "fail", "检测到隐藏提示词注入或分词器不一致。"
     elif verdict_warn:
         r.status, r.summary = "warn", "存在可疑的额外开销，建议提供参考官方 Key 复核。"
-    elif diffs or overhead is not None:
+    elif diffs:
         r.status, r.summary = "pass", "无隐藏提示词注入：官方计数差值在模板开销范围内，模型也未复述出额外指令。"
+    elif overhead is not None:
+        r.status = "pass"
+        r.summary = f"未发现明显注入：倍增差分法测得固定开销约 {overhead} tokens，模型未复述出额外指令（无官方计数，结论置信度有限）。"
     else:
         r.status, r.summary = "skip", "所有方法均无法取得数据。"
     return r
